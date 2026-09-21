@@ -1,60 +1,12 @@
 import React, { useState } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, Play } from "lucide-react";
+import { encodeBehaviorEmbedding } from "../lib/embedding.js";
 
 const DECISION_STYLES = {
   APPROVE: { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", label: "Approve" },
   FLAG: { icon: AlertTriangle, color: "text-amber-400", bg: "bg-amber-500/10", label: "Flag" },
   BLOCK: { icon: XCircle, color: "text-rose-400", bg: "bg-rose-500/10", label: "Block" },
 };
-
-// Deterministic string hash (FNV-1a) used to seed the embedding generator
-// below, so the same transaction content always yields the same embedding.
-function fnv1aHash(str) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-// Deterministic PRNG (mulberry32) — used only to spread a real feature
-// hash across 1536 dimensions, not to inject randomness into the score.
-function mulberry32(seed) {
-  return function () {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * Encodes real transaction fields into a 1536-dim behavioral embedding
- * using a feature-hashing projection: each field's value is hashed into a
- * seed, and that seed deterministically spreads the field's contribution
- * across the vector. Same input → same embedding, every time — this is a
- * legitimate (if simple) hashing-trick encoder, not noise.
- */
-function encodeBehaviorEmbedding(fields) {
-  const dims = 1536;
-  const vector = new Array(dims).fill(0);
-  Object.entries(fields).forEach(([key, value]) => {
-    const seed = fnv1aHash(`${key}:${value}`);
-    const rand = mulberry32(seed);
-    // Each feature contributes to a fixed-size, seed-selected slice of the
-    // vector so different feature values move different dimensions.
-    const sliceSize = 64;
-    const start = seed % (dims - sliceSize);
-    for (let i = 0; i < sliceSize; i++) {
-      vector[start + i] += rand() * 2 - 1;
-    }
-  });
-  // Normalize to unit length so cosine similarity behaves consistently.
-  const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0)) || 1;
-  return vector.map((v) => v / norm);
-}
 
 // Sample payload generator for the demo — mirrors EvaluateRequest shape.
 // Field values are randomized to simulate incoming traffic; the embedding
