@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: fraudsentinel
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fraudsentinel}
+    username: ${DB_USERNAME:fraudsentinel_app}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+
+bedrock:
+  region: ${AWS_REGION:us-east-1}
+  model-id: ${BEDROCK_MODEL_ID:anthropic.claude-3-sonnet-20240229-v1:0}
+  max-tokens: 600
+
+app:
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
