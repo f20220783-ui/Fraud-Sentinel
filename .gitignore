@@ -5,3 +5,6 @@ dist/
 .env
 *.log
 .DS_Store
+DEMO_SCRIPT.md
+PRESENTATION_SLIDES.md
+FraudSentinel_AI_Submission.pdf
